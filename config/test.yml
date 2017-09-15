@@ -1,0 +1,72 @@
+
+result_excel: D:\output.xlsx
+
+file_a:
+  query_info: 
+    db_type: vertica
+    silo_server: ENGP2ASQDBC1A.ENG.RSICORP.LOCAL\DB6
+    silo_db_name: NESTLEUK_ASDA_VICKY
+    silo_id: NESTLEUK_ASDA_VICKY
+    db_server: 
+    db_name: 
+    username: 
+    password: 
+    schema_name: 
+    sql: SELECT ITEMNUMBER, STORE_KEY, whse_nbr, oos_status, RetailOnhand, restricted_order_qty_whse_pk FROM $schema_name.ANL_FACT_OSM_INCIDENTS WHERE PERIOD_KEY = '20170310' and interventionkey = 23
+  file_loc: "D:\\file1.csv"
+  headers: 
+    - ITEMNUMBER
+    - STORE_KEY
+    - whse_nbr
+    - oos_status
+    - RetailOnhand
+    - restricted_order_qty_whse_pk
+  keys: 
+    - ITEMNUMBER
+    - STORE_KEY
+  
+file_b:
+  query_info: 
+    db_type: vertica
+    silo_server: 
+    silo_db_name: 
+    silo_id: 
+    db_server: QAVERTICANXG.ENG.RSICORP.LOCAL
+    db_name: Fusion
+    username: engdeployvtc
+    password: Frl98YRmm1
+    schema_name: WMNESTLEUK_ASDA_VICKY
+    sql: SELECT ITEMNUMBER, STORE_KEY, whse_nbr, oos_status, RetailOnhand, restricted_order_qty_whse_pk FROM $schema_name.ANL_FACT_OSM_INCIDENTS WHERE PERIOD_KEY = '20170310' and interventionkey = 23
+  file_loc: "D:\\file2.csv"
+  headers: 
+    - ITEMNUMBER
+    - STORE_KEY
+    - whse_nbr
+    - oos_status
+    - RetailOnhand
+    - restricted_order_qty_whse_pk
+  keys: 
+    - ITEMNUMBER
+    - STORE_KEY
+    
+diff_fields:
+  - [whse_nbr, whse_nbr]
+  - [oos_status, oos_status]
+  - [RetailOnhand, RetailOnhand]
+  - [restricted_order_qty_whse_pk, restricted_order_qty_whse_pk]
+    
+tolerance: 0.2
+
+diff_agg_fields: 
+  file_a: 
+    group_by: 
+      - whse_nbr
+    aggregate: 
+      - [RetailOnhand, avg]
+      - [restricted_order_qty_whse_pk, sum]
+  file_b: 
+    group_by: 
+      - whse_nbr
+    aggregate: 
+      - [RetailOnhand, avg]
+      - [restricted_order_qty_whse_pk, sum]

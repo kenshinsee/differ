@@ -1,0 +1,67 @@
+
+result_excel: D:\output_sqlserver.xlsx
+
+file_a:
+  query_info: 
+    db_type: sqlserver
+    db_server: 10.172.37.20
+    db_name: WM_HUB
+    username: migrationreader
+    password: t3cit3ci
+    sql: select EVENT_ID,EVENT_TYPE,EVENT_TS,STATUS,SILO_ID,MESSAGE 
+        from [dbo].[RSI_CORE_EVENTS]  
+        where message not in ('Attib Map Change', 'Attribute Change')
+  file_loc: "D:\\file1_sqlserver.csv"
+  headers: 
+    - EVENT_ID
+    - EVENT_TYPE
+    - EVENT_TS
+    - STATUS
+    - SILO_ID
+    - MESSAGE
+  keys: 
+    - EVENT_ID
+  
+file_b:
+  query_info: 
+    db_type: sqlserver
+    db_server: 10.172.37.20
+    db_name: WM_HUB
+    username: migrationreader
+    password: t3cit3ci
+    sql: select EVENT_ID,EVENT_TYPE,EVENT_TS,STATUS,SILO_ID,MESSAGE 
+        from [dbo].[RSI_CORE_EVENTS] 
+        WHERE SILO_ID = 'WM_ALERT' and message not in ('Attib Map Change', 'Attribute Change')
+  file_loc: "D:\\file2_sqlserver.csv"
+  headers: 
+    - EVENT_ID
+    - EVENT_TYPE
+    - EVENT_TS
+    - STATUS
+    - SILO_ID
+    - MESSAGE
+  keys: 
+    - EVENT_ID
+    
+diff_fields:
+  - [EVENT_TYPE, EVENT_TYPE]
+  - [EVENT_TS, EVENT_TS]
+  - [STATUS, STATUS]
+  - [SILO_ID, SILO_ID]
+  - [MESSAGE, MESSAGE]
+    
+tolerance: 0.2
+
+diff_agg_fields: 
+  file_a: 
+    group_by: 
+      - EVENT_ID
+    aggregate: 
+      - [EVENT_TS, count]
+      - [MESSAGE, sum]
+  file_b: 
+    group_by: 
+      - EVENT_ID
+    aggregate: 
+      - [EVENT_TS, count]
+      - [MESSAGE, sum]

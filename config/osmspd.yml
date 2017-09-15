@@ -1,0 +1,101 @@
+
+result_excel: D:\osmspd.xlsx
+
+file_a:
+  query_info: 
+    db_type: vertica
+    silo_server: 
+    silo_db_name: 
+    db_server: 
+    db_name: 
+    username: 
+    password: 
+    schema_name: 
+    sql: select 
+            period_key
+            ,sum(rsdemand) rsdemand
+            ,sum(lostUnits) lostUnits
+            ,sum(lostSales) loastSales
+            ,count(oosdim.interventionkey) oosCount
+            ,count(fact.supplychaincondition) totalCount
+         FROM $schema_name.ANL_FACT_OSM_SPD FACT 
+         LEFT JOIN (select * from $schema_name.ANL_DIM_OSM_INTERVENTIONCLASSIFICATION where application='OOS') oosdim 
+         on fact.supplychaincondition = oosdim.interventionkey 
+         group by period_key 
+         order by period_key 
+  file_loc: "D:\\osmspd_nxg.csv"
+  headers: 
+    - period_key
+    - rsdemand
+    - lostUnits
+    - loastSales
+    - oosCount
+    - totalCount
+  keys: 
+    - period_key
+  
+file_b:
+  query_info: 
+    db_type: sqlserver
+    silo_server: 
+    silo_db_name: 
+    db_server: 
+    db_name: 
+    username: 
+    password: 
+    schema_name: 
+    sql: select 
+            period_key
+            ,sum(rsdemand) rsdemand
+            ,sum(lostUnits) lostUnits
+            ,sum(lostSales) loastSales
+            ,count(oosdim.interventionkey) oosCount
+            ,count(fact.supplychaincondition) totalCount
+         FROM dbo.RSI_ANL_FACT_OSM_SPD FACT 
+         LEFT JOIN (
+                select * from dbo.RSI_ANL_DIM_OSM_INTERVENTIONCLASSIFICATION 
+                where application='OOS'
+            ) oosdim 
+         on fact.supplychaincondition = oosdim.interventionkey 
+         group by period_key 
+         order by period_key
+  file_loc: "D:\\osmspd_fusion.csv"
+  headers: 
+    - period_key
+    - rsdemand
+    - lostUnits
+    - loastSales
+    - oosCount
+    - totalCount
+  keys: 
+    - period_key
+    
+diff_fields:
+  - [rsdemand, rsdemand]
+  - [lostUnits, lostUnits]
+  - [loastSales, loastSales]
+  - [oosCount, oosCount]
+  - [totalCount, totalCount]
+    
+tolerance: 0.2
+
+diff_agg_fields: 
+  file_a: 
+    group_by: 
+      - period_key
+    aggregate: 
+      - [rsdemand, sum]
+      - [lostUnits, sum]
+      - [loastSales, sum]
+      - [oosCount, sum]
+      - [totalCount, sum]
+  file_b: 
+    group_by: 
+      - period_key
+    aggregate: 
+      - [rsdemand, sum]
+      - [lostUnits, sum]
+      - [loastSales, sum]
+      - [oosCount, sum]
+      - [totalCount, sum]
+      

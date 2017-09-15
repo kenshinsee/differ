@@ -1,0 +1,106 @@
+
+result_excel: D:\aa.xlsx
+
+file_a:
+  query_info: 
+    db_type: vertica
+    silo_server: 
+    silo_db_name: 
+    db_server: 
+    db_name: 
+    username: 
+    password: 
+    schema_name: 
+    sql: SELECT period_key,
+                sum(POSUNITS) POSUnits,
+                sum(POSSALES) POSSALES,
+                sum(CASE WHEN (COALESCE(ZSD,0) + COALESCE(STO,0)) = 0 THEN NULL ELSE (COALESCE(ZSD,0) + COALESCE(STO,0)) END) as "Total_Availability_Lost_Sales_Volume_Units",
+                sum(CASE WHEN (COALESCE(IDP,0) + COALESCE(LDP,0)) = 0 THEN NULL ELSE (COALESCE(IDP,0) + COALESCE(LDP,0)) END) AS "Total_Distribution_Lost_Sales_Volume_Units",
+                sum(CASE WHEN ((COALESCE(ZSD,0) + COALESCE(STO,0)) + (COALESCE(IDP,0) + COALESCE(LDP,0))) = 0 THEN NULL ELSE ((COALESCE(ZSD,0) + COALESCE(STO,0)) + (COALESCE(IDP,0) + COALESCE(LDP,0))) END) AS "Total_Lost_Sales_Volume_Units",
+                sum(POTENTIALSALES) POTENTIALSALES,
+                sum(RSP) RetailSalesPrice
+         FROM $schema_name.ANL_FACT_AA_STOREPRODUCT 
+         group by period_key 
+         order by period_key
+  file_loc: "D:\\aa_nxg.csv"
+  headers: 
+    - period_key
+    - POSUnits
+    - POSSALES
+    - Total_Availability_Lost_Sales_Volume_Units
+    - Total_Distribution_Lost_Sales_Volume_Units
+    - Total_Lost_Sales_Volume_Units
+    - POTENTIALSALES
+    - RetailSalesPrice
+  keys: 
+    - period_key
+  
+file_b:
+  query_info: 
+    db_type: sqlserver
+    silo_server: 
+    silo_db_name: 
+    db_server: 
+    db_name: 
+    username: 
+    password: 
+    schema_name: 
+    sql: SELECT period_key,
+                sum(POSUNITS) POSUnits,
+                sum(POSSALES) POSSALES,
+                sum(CASE WHEN (COALESCE(ZSD,0) + COALESCE(STO,0)) = 0 THEN NULL ELSE (COALESCE(ZSD,0) + COALESCE(STO,0)) END) as "Total_Availability_Lost_Sales_Volume_Units",
+                sum(CASE WHEN (COALESCE(IDP,0) + COALESCE(LDP,0)) = 0 THEN NULL ELSE (COALESCE(IDP,0) + COALESCE(LDP,0)) END) AS "Total_Distribution_Lost_Sales_Volume_Units",
+                sum(CASE WHEN ((COALESCE(ZSD,0) + COALESCE(STO,0)) + (COALESCE(IDP,0) + COALESCE(LDP,0))) = 0 THEN NULL ELSE ((COALESCE(ZSD,0) + COALESCE(STO,0)) + (COALESCE(IDP,0) + COALESCE(LDP,0))) END) AS "Total_Lost_Sales_Volume_Units",
+                sum(POTENTIALSALES) POTENTIALSALES,
+                sum(RSP) RetailSalesPrice
+         FROM DBO.RSI_ANL_FACT_AA_STOREPRODUCT 
+         group by period_key 
+         order by period_key
+  file_loc: "D:\\aa_fusion.csv"
+  headers: 
+    - period_key
+    - POSUnits
+    - POSSALES
+    - Total_Availability_Lost_Sales_Volume_Units
+    - Total_Distribution_Lost_Sales_Volume_Units
+    - Total_Lost_Sales_Volume_Units
+    - POTENTIALSALES
+    - RetailSalesPrice
+  keys: 
+    - period_key
+    
+diff_fields:
+  - [POSUnits, POSUnits]
+  - [POSSALES, POSSALES]
+  - [Total_Availability_Lost_Sales_Volume_Units, Total_Availability_Lost_Sales_Volume_Units]
+  - [Total_Distribution_Lost_Sales_Volume_Units, Total_Distribution_Lost_Sales_Volume_Units]
+  - [Total_Lost_Sales_Volume_Units, Total_Lost_Sales_Volume_Units]
+  - [POTENTIALSALES, POTENTIALSALES]
+  - [RetailSalesPrice, RetailSalesPrice]
+    
+tolerance: 0.2
+
+diff_agg_fields: 
+  file_a: 
+    group_by: 
+      - period_key
+    aggregate: 
+      - [POSUnits, sum]
+      - [POSSALES, sum]
+      - [Total_Availability_Lost_Sales_Volume_Units, sum]
+      - [Total_Distribution_Lost_Sales_Volume_Units, sum]
+      - [Total_Lost_Sales_Volume_Units, sum]
+      - [POTENTIALSALES, sum]
+      - [RetailSalesPrice, sum]
+  file_b: 
+    group_by: 
+      - period_key
+    aggregate: 
+      - [POSUnits, sum]
+      - [POSSALES, sum]
+      - [Total_Availability_Lost_Sales_Volume_Units, sum]
+      - [Total_Distribution_Lost_Sales_Volume_Units, sum]
+      - [Total_Lost_Sales_Volume_Units, sum]
+      - [POTENTIALSALES, sum]
+      - [RetailSalesPrice, sum]
+      

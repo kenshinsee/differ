@@ -1,0 +1,100 @@
+
+result_excel: D:\osmalert.xlsx
+
+file_a:
+  query_info: 
+    db_type: vertica
+    silo_server: 
+    silo_db_name: 
+    db_server: 
+    db_name: 
+    username: 
+    password: 
+    schema_name: 
+    sql: select 
+            fact.period_key
+            ,sum(AvgRSDemand) rsdemand
+            ,sum(LostUnitsToDate) lostUnits
+            ,sum(lostSalesToDate) loastSales
+            ,count(oosdim.interventionkey) oosCount
+            ,count(fact.interventionkey) totalCount
+         FROM $schema_name.ANL_FACT_OSM_INCIDENTS FACT 
+         LEFT JOIN (select * from $schema_name.ANL_DIM_OSM_INTERVENTIONCLASSIFICATION where application='OOS') oosdim 
+         on fact.interventionkey = oosdim.interventionkey 
+         group by fact.period_key 
+         order by fact.period_key
+  file_loc: "D:\\osmalert_nxg.csv"
+  headers: 
+    - period_key
+    - rsdemand
+    - lostUnits
+    - loastSales
+    - oosCount
+    - totalCount
+  keys: 
+    - period_key
+  
+file_b:
+  query_info: 
+    db_type: sqlserver
+    silo_server: 
+    silo_db_name: 
+    db_server: 
+    db_name: 
+    username: 
+    password: 
+    schema_name: 
+    sql: select 
+            CONVERT(varchar(12) , fact.InitialDay, 112 ) period_key
+            ,sum(AvgRSDemand) rsdemand
+            ,sum(LostUnitsToDate) lostUnits
+            ,sum(lostSalesToDate) loastSales
+            ,count(oosdim.interventionkey) oosCount
+            ,count(fact.interventionkey) totalCount
+         FROM dbo.RSI_ANL_FACT_OSM_INCIDENTS FACT 
+         LEFT JOIN (
+             select * from dbo.RSI_ANL_DIM_OSM_INTERVENTIONCLASSIFICATION where application='OOS'
+         ) oosdim 
+         on fact.interventionkey = oosdim.interventionkey 
+         group by CONVERT(varchar(12) , fact.InitialDay, 112 ) period_key
+         order by CONVERT(varchar(12) , fact.InitialDay, 112 ) period_key
+  file_loc: "D:\\osmalert_fusion.csv"
+  headers: 
+    - period_key
+    - rsdemand
+    - lostUnits
+    - loastSales
+    - oosCount
+    - totalCount
+  keys: 
+    - period_key
+    
+diff_fields:
+  - [rsdemand, rsdemand]
+  - [lostUnits, lostUnits]
+  - [loastSales, loastSales]
+  - [oosCount, oosCount]
+  - [totalCount, totalCount]
+    
+tolerance: 0.2
+
+diff_agg_fields: 
+  file_a: 
+    group_by: 
+      - period_key
+    aggregate: 
+      - [rsdemand, sum]
+      - [lostUnits, sum]
+      - [loastSales, sum]
+      - [oosCount, sum]
+      - [totalCount, sum]
+  file_b: 
+    group_by: 
+      - period_key
+    aggregate: 
+      - [rsdemand, sum]
+      - [lostUnits, sum]
+      - [loastSales, sum]
+      - [oosCount, sum]
+      - [totalCount, sum]
+      
