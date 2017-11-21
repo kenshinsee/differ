@@ -4,6 +4,7 @@ import os
 class File_Differ:
     def __init__(self, meta):
         self.meta = meta
+        self.sort_column = meta["sort_column"]
         self.tolerance = meta["tolerance"]
         self.file_a = meta["file_a"]["file_loc"]
         self.file_b = meta["file_b"]["file_loc"]
@@ -21,7 +22,13 @@ class File_Differ:
         self.columns_in_df_a = columns_in_df_a_b["file_a"]
         self.columns_in_df_b = columns_in_df_a_b["file_b"]
         self.__fill_na_inplace( self.merged_df, self.columns_in_df_a + self.columns_in_df_b )
-        self.__add_identical_flag(self.merged_df, self.columns_in_df_a, self.columns_in_df_b)
+        diff_columns = self.__add_identical_flag(self.merged_df, self.columns_in_df_a, self.columns_in_df_b)
+        ## now we start reordering the columns in merged_df, put comparable columns together
+        column_pairs = list(zip(self.columns_in_df_a, self.columns_in_df_b, diff_columns))
+        column_pairs_to_list = ['is_identical', '_merge']
+        for pair in column_pairs:
+            column_pairs_to_list = column_pairs_to_list + list(pair)
+        self.merged_df_reordered = self.merged_df[meta["file_a"]["keys"] + meta["file_b"]["keys"] + column_pairs_to_list]
         
         # aggregate
         agg_df_a = self.__create_agg_dataframe(self.df_a, "file_a")
@@ -36,9 +43,15 @@ class File_Differ:
         raw_agg_b_columns = [ i[0] for i in meta["diff_agg_fields"]["file_b"]["aggregate"] ]
         agg_fields = list(zip(raw_agg_a_columns, raw_agg_b_columns))
         columns_in_agg_df_a_b = self.__get_dataframe_column_names(agg_fields)
-        self.columns_in_agg_df_a = columns_in_agg_df_a_b["file_a"]
-        self.columns_in_agg_df_b = columns_in_agg_df_a_b["file_b"]
-        self.__add_diff_pctg_flag(self.merged_agg_df, self.columns_in_agg_df_a, self.columns_in_agg_df_b, self.tolerance)
+        columns_in_agg_df_a = columns_in_agg_df_a_b["file_a"]
+        columns_in_agg_df_b = columns_in_agg_df_a_b["file_b"]
+        tolerance_columns = self.__add_diff_pctg_flag(self.merged_agg_df, columns_in_agg_df_a, columns_in_agg_df_b, self.tolerance)
+        ## now we start reordering the columns in merged_agg_df, put comparable columns together
+        column_pairs = list(zip(columns_in_agg_df_a, columns_in_agg_df_b, tolerance_columns))
+        column_pairs_to_list = ['diff_in_tolerance']
+        for pair in column_pairs:
+            column_pairs_to_list = column_pairs_to_list + [pair[0]] + [pair[1]] + pair[2]
+        self.merged_agg_df_reordered = self.merged_agg_df[meta["diff_agg_fields"]["file_a"]["group_by"] + meta["diff_agg_fields"]["file_b"]["group_by"] + column_pairs_to_list]
         
         # summary info
         self.a_count = self.df_a.shape[0]
@@ -98,9 +111,12 @@ class File_Differ:
     def __add_identical_flag(self, df, file_a_cols, file_b_cols):
         column_pairs = list(zip(file_a_cols, file_b_cols))
         df["is_identical"] = 1
+        identical_flags = []
         for pair in column_pairs:
+            identical_flags.append(pair[0] + "_identical")
             df[pair[0] + "_identical"] = df[list(pair)].apply(lambda x: 1 if x[0] == x[1] else 0, axis=1)
             df["is_identical"] = df[[pair[0] + "_identical", "is_identical"]].apply(lambda x: 0 if x[0] == 0 or x[1] == 0 else 1, axis=1)
+        return identical_flags
         
     def __create_agg_dataframe(self, df, file_ind):
         agg_func = {
@@ -123,11 +139,14 @@ class File_Differ:
     def __add_diff_pctg_flag(self, df, file_a_cols, file_b_cols, tolerance):
         column_pairs = list(zip(file_a_cols, file_b_cols))
         df["diff_in_tolerance"] = 1
+        tolerance_flags = []
         for pair in column_pairs:
+            tolerance_flags.append([pair[0] + "_diff", pair[0] + "_diff_in_tolerance"])
             df[pair[0] + "_diff"] = df[list(pair)].apply(lambda x: abs((x[0] - x[1]) / x[0]), axis=1)
             df[pair[0] + "_diff_in_tolerance"] = df[list(pair)].apply(lambda x: 1 if abs((x[0] - x[1]) / x[0]) <= tolerance else 0, axis=1)
             df["diff_in_tolerance"] = df[[pair[0] + "_diff_in_tolerance", "diff_in_tolerance"]].apply(lambda x: 0 if x[0] == 0 or x[1] == 0 else 1, axis=1)
-
+        return tolerance_flags
+        
     def get_df_a(self):
         return self.df_a
     
@@ -138,19 +157,26 @@ class File_Differ:
         return self.merged_df
     
     def get_df_not_match(self):
-        return self.merged_df[(self.merged_df["is_identical"] == 0) & (self.merged_df["_merge"] == "both")]
+        if self.sort_column: 
+            return self.merged_df_reordered[(self.merged_df_reordered["is_identical"] == 0) & (self.merged_df_reordered["_merge"] == "both")]
+        else:
+            return self.merged_df[(self.merged_df["is_identical"] == 0) & (self.merged_df["_merge"] == "both")]
     
     def get_agg_dataframe(self):
         return self.merged_agg_df
     
     def get_agg_not_in_tolerance(self):
-        return self.merged_agg_df[self.merged_agg_df["diff_in_tolerance"] == 0]
-    
+        if self.sort_column:
+            return self.merged_agg_df_reordered[self.merged_agg_df["diff_in_tolerance"] == 0]
+        else:
+            return self.merged_agg_df[self.merged_agg_df["diff_in_tolerance"] == 0]
+        
+        
     def get_a_only(self):
         return self.merged_df[self.merged_df["_merge"] == 'left_only'][self.meta["file_a"]["keys"] + self.columns_in_df_a]
     
     def get_b_only(self):
-        return self.merged_df[self.merged_df["_merge"] == 'right_only'][self.meta["file_a"]["keys"] + self.columns_in_df_b]
+        return self.merged_df[self.merged_df["_merge"] == 'right_only'][self.meta["file_b"]["keys"] + self.columns_in_df_b]
     
     def get_summary(self):
         self.summary_df = pd.DataFrame(data=self.summary_value, index=self.summary_index, columns=["summary"])

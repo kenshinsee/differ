@@ -38,6 +38,22 @@ parser = OptionParser()
 parser.add_option("--mode", "-m", dest="mode", action="store", type="string", default="exportAndCompare")
 parser.add_option("--config", "-c", dest="config", action="store", type="string", default="test.yml")
 parser.add_option("--sheets", "-s", dest="sheets", action="store", type="string", default="Summary|aFile|bFile|aOnly|bOnly|Detail|notAllMatch|Agg|notInTolerance")
+parser.add_option("--sort_column", "-t", dest="sort_column", action="store_true", default=False)
+
+parser.add_option("--result_excel", dest="result_excel", action="store", type="string")
+parser.add_option("--file_a_db_server", dest="file_a_db_server", action="store", type="string")
+parser.add_option("--file_a_db_name", dest="file_a_db_name", action="store", type="string")
+parser.add_option("--file_a_username", dest="file_a_username", action="store", type="string")
+parser.add_option("--file_a_password", dest="file_a_password", action="store", type="string")
+parser.add_option("--file_a_file_loc", dest="file_a_file_loc", action="store", type="string")
+parser.add_option("--file_b_db_server", dest="file_b_db_server", action="store", type="string")
+parser.add_option("--file_b_db_name", dest="file_b_db_name", action="store", type="string")
+parser.add_option("--file_b_username", dest="file_b_username", action="store", type="string")
+parser.add_option("--file_b_password", dest="file_b_password", action="store", type="string")
+parser.add_option("--file_b_file_loc", dest="file_b_file_loc", action="store", type="string")
+
+parser.add_option("--tolerance", dest="tolerance", action="store", type="string")
+
 (options, args) = parser.parse_args()
 
 # Verify input mode
@@ -55,6 +71,46 @@ logger("Loading %s" % conf_name)
 config_handler = open(conf_name)
 meta = yaml.load(config_handler)
 config_handler.close()
+
+meta["sort_column"] = options.sort_column
+
+# replace parameter values if specified in commandline
+if options.result_excel:
+    meta['result_excel'] = options.result_excel
+logger('result_excel: %s' % meta['result_excel'])
+if options.file_a_db_server:
+    meta['file_a']['query_info']['db_server'] = options.file_a_db_server
+logger('file_a_db_server: %s' % meta['file_a']['query_info']['db_server'])
+if options.file_a_db_name:
+    meta['file_a']['query_info']['db_name'] = options.file_a_db_name
+logger('file_a_db_name: %s' % meta['file_a']['query_info']['db_name'])
+if options.file_a_username:
+    meta['file_a']['query_info']['username'] = options.file_a_username
+logger('file_a_username: %s' % meta['file_a']['query_info']['username'])
+if options.file_a_password:
+    meta['file_a']['query_info']['password'] = options.file_a_password
+logger('file_a_password: %s' % meta['file_a']['query_info']['password'])
+if options.file_a_file_loc:
+    meta['file_a']['file_loc'] = (options.file_a_file_loc).replace('\\', '\\\\')
+logger('file_a_file_loc: %s' % meta['file_a']['file_loc'])
+if options.file_b_db_server:
+    meta['file_b']['query_info']['db_server'] = options.file_b_db_server
+logger('file_b_db_server: %s' % meta['file_b']['query_info']['db_server'])
+if options.file_b_db_name:
+    meta['file_b']['query_info']['db_name'] = options.file_b_db_name
+logger('file_b_db_name: %s' % meta['file_b']['query_info']['db_name'])
+if options.file_b_username:
+    meta['file_b']['query_info']['username'] = options.file_b_username
+logger('file_b_username: %s' % meta['file_b']['query_info']['username'])
+if options.file_b_password:
+    meta['file_b']['query_info']['password'] = options.file_b_password
+logger('file_b_password: %s' % meta['file_b']['query_info']['password'])
+if options.file_b_file_loc:
+    meta['file_b']['file_loc'] = (options.file_b_file_loc).replace('\\', '\\\\')
+logger('file_b_file_loc: %s' % meta['file_b']['file_loc'])
+if options.tolerance:
+    meta['tolerance'] = float(options.tolerance)
+logger('tolerance: %s' % meta['tolerance'])
 
 
 #-----------------------------------------#
